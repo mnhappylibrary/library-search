@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>문내행복 작은도서관 도서 검색</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+h1 { margin-bottom: 5px; }
+.subtitle { color: #666; margin-bottom: 15px; }
+.notice { font-size: 14px; color: #555; margin-bottom: 10px; }
+.count { font-weight: bold; margin: 10px 0; }
+.guide { color: #777; margin-top: 20px; }
+input { width: 100%; padding: 10px; font-size: 16px; margin: 10px 0; }
+table { width: 100%; border-collapse: collapse; display: none; }
+th, td { border: 1px solid #ccc; padding: 8px; font-size: 14px; text-align: left; }
+th { background: #f2f2f2; }
+</style>
+</head>
+<body>
+
+<h1>📚 문내행복 작은도서관 📚</h1>
+<div class="subtitle">도서 검색 서비스</div>
+
+<div class="notice">
+※ 대출 가능 여부는 도서관으로 문의해 주세요.
+</div>
+
+<div class="count" id="bookCount">
+총 도서 보유 수: 0권
+</div>
+
+<input type="text" id="search" placeholder="도서번호 · 도서명 · 저자 · 출판사 검색">
+
+<div class="guide" id="guide">
+검색어를 입력하면 도서목록이 표시됩니다.
+</div>
+
+<table id="table">
+<thead>
+<tr>
+  <th>도서번호</th>
+  <th>도서명</th>
+  <th>저자</th>
+  <th>출판사</th>
+</tr>
+</thead>
+<tbody id="bookTable"></tbody>
+</table>
+
+<script>
+let rows = [];
+
+function clean(t) {
+  return t.replace(/^\uFEFF/, '').replace(/\r/g, '');
+}
+
+fetch('도서목록.csv')
+  .then(res => res.text())
+  .then(text => {
+    rows = clean(text)
+      .split('\n')
+      .slice(1)
+      .map(r => r.split(','))
+      .filter(r => r.length >= 4);
+
+    document.getElementById('bookCount').innerText =
+      `총 도서 보유 수: ${rows.length}권`;
+  });
+
+function render(data) {
+  const table = document.getElementById('table');
+  const body = document.getElementById('bookTable');
+  body.innerHTML = '';
+
+  if (data.length === 0) {
+    table.style.display = 'none';
+    return;
+  }
+
+  table.style.display = 'table';
+
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r[0]}</td>
+      <td>${r[1]}</td>
+      <td>${r[2]}</td>
+      <td>${r[3]}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+document.getElementById('search').addEventListener('input', function() {
+  const keyword = this.value.trim().toLowerCase();
+  const guide = document.getElementById('guide');
+
+  if (keyword === '') {
+    guide.style.display = 'block';
+    document.getElementById('table').style.display = 'none';
+    document.getElementById('bookCount').innerText =
+      `총 도서 보유 수: ${rows.length}권`;
+    return;
+  }
+
+  guide.style.display = 'none';
+
+  const filtered = rows.filter(r =>
+    r.join(' ').toLowerCase().includes(keyword)
+  );
+
+  document.getElementById('bookCount').innerText =
+    `검색 결과: ${filtered.length}권`;
+
+  render(filtered);
+});
+</script>
+
+</body>
+</html>
