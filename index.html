@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>도서 검색</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+input[type="text"] { width: 100%; padding: 10px; margin: 10px 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; }
+th { background: #f4f4f4; }
+</style>
+</head>
+<body>
+
+<h2>📚 도서 검색</h2>
+
+<input type="file" id="csvFile" accept=".csv">
+<input type="text" id="search" placeholder="도서명, 저자, 출판사 검색">
+
+<table>
+<thead>
+<tr>
+  <th>도서명</th>
+  <th>저자</th>
+  <th>출판사</th>
+</tr>
+</thead>
+<tbody id="bookTable"></tbody>
+</table>
+
+<script>
+let rowsData = [];
+
+document.getElementById('csvFile').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function() {
+    const lines = reader.result.split('\n').slice(1);
+    rowsData = [];
+    const table = document.getElementById('bookTable');
+    table.innerHTML = '';
+
+    lines.forEach(line => {
+      const cols = line.split(',');
+      if (cols.length > 1) {
+        rowsData.push(cols);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${cols[1]}</td>
+          <td>${cols[2]}</td>
+          <td>${cols[3]}</td>
+        `;
+        table.appendChild(tr);
+      }
+    });
+  };
+  reader.readAsText(file, 'utf-8');
+});
+
+document.getElementById('search').addEventListener('keyup', function() {
+  const keyword = this.value.toLowerCase();
+  const table = document.getElementById('bookTable');
+  table.innerHTML = '';
+
+  rowsData.forEach(cols => {
+    if (cols.join(' ').toLowerCase().includes(keyword)) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${cols[1]}</td>
+        <td>${cols[2]}</td>
+        <td>${cols[3]}</td>
+      `;
+      table.appendChild(tr);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
