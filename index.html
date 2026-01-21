@@ -3,23 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>도서 검색</title>
+<title>문내행복 작은도서관 도서 검색</title>
 <style>
 body { font-family: sans-serif; padding: 20px; }
-input[type="text"] { width: 100%; padding: 10px; margin: 10px 0; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; }
-th { background: #f4f4f4; }
+h1 { margin-bottom: 5px; }
+.subtitle { color: #666; margin-bottom: 15px; }
+.notice { font-size: 14px; color: #555; margin-bottom: 10px; }
+.count { font-weight: bold; margin: 10px 0; }
+.guide { color: #777; margin-top: 20px; }
+input { width: 100%; padding: 10px; font-size: 16px; margin: 10px 0; }
+table { width: 100%; border-collapse: collapse; display: none; }
+th, td { border: 1px solid #ccc; padding: 8px; font-size: 14px; }
+th { background: #f2f2f2; }
 </style>
 </head>
 <body>
 
-<h2>📚 도서 검색</h2>
+<h1>📚 문내행복 작은도서관 📚</h1>
+<div class="subtitle">도서 검색 서비스</div>
 
-<input type="file" id="csvFile" accept=".csv">
-<input type="text" id="search" placeholder="도서명, 저자, 출판사 검색">
+<div class="notice">
+※ 대출 가능 여부는 도서관으로 문의해 주세요.
+</div>
 
-<table>
+<div class="count" id="bookCount">
+총 도서 보유 수: 0권
+</div>
+
+<input type="text" id="search" placeholder="도서명 · 저자 · 출판사 검색">
+
+<div class="guide" id="guide">
+검색어를 입력하면 도서목록이 표시됩니다.
+</div>
+
+<table id="table">
 <thead>
 <tr>
   <th>도서명</th>
@@ -31,51 +48,70 @@ th { background: #f4f4f4; }
 </table>
 
 <script>
-let rowsData = [];
+let rows = [];
 
-document.getElementById('csvFile').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  const reader = new FileReader();
+function clean(t) {
+  return t.replace(/^\uFEFF/, '').replace(/\r/g, '');
+}
 
-  reader.onload = function() {
-    const lines = reader.result.split('\n').slice(1);
-    rowsData = [];
-    const table = document.getElementById('bookTable');
-    table.innerHTML = '';
+fetch('도서목록.csv')
+  .then(res => res.text())
+  .then(text => {
+    rows = clean(text)
+      .split('\n')
+      .slice(1)
+      .map(r => r.split(','))
+      .filter(r => r.length >= 3);
 
-    lines.forEach(line => {
-      const cols = line.split(',');
-      if (cols.length > 1) {
-        rowsData.push(cols);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${cols[1]}</td>
-          <td>${cols[2]}</td>
-          <td>${cols[3]}</td>
-        `;
-        table.appendChild(tr);
-      }
-    });
-  };
-  reader.readAsText(file, 'utf-8');
-});
-
-document.getElementById('search').addEventListener('keyup', function() {
-  const keyword = this.value.toLowerCase();
-  const table = document.getElementById('bookTable');
-  table.innerHTML = '';
-
-  rowsData.forEach(cols => {
-    if (cols.join(' ').toLowerCase().includes(keyword)) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${cols[1]}</td>
-        <td>${cols[2]}</td>
-        <td>${cols[3]}</td>
-      `;
-      table.appendChild(tr);
-    }
+    document.getElementById('bookCount').innerText =
+      `총 도서 보유 수: ${rows.length}권`;
   });
+
+function render(data) {
+  const table = document.getElementById('table');
+  const body = document.getElementById('bookTable');
+  body.innerHTML = '';
+
+  if (data.length === 0) {
+    table.style.display = 'none';
+    return;
+  }
+
+  table.style.display = 'table';
+
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r[0]}</td>
+      <td>${r[1]}</td>
+      <td>${r[2]}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+document.getElementById('search').addEventListener('input', function() {
+  const keyword = this.value.trim().toLowerCase();
+  const guide = document.getElementById('guide');
+
+  if (keyword === '') {
+    guide.style.display = 'block';
+    document.getElementById('table').style.display = 'none';
+    document.getElementById('bookCount').innerText =
+      `총 도서 보유 수: ${rows.length}권`;
+    return;
+  }
+
+  guide.style.display = 'none';
+
+  const filtered = rows.filter(r =>
+    r.join(' ').toLowerCase().includes(keyword)
+  );
+
+  document.getElementById('bookCount').innerText =
+    `검색 결과: ${filtered.length}권`;
+
+  render(filtered);
 });
 </script>
 
