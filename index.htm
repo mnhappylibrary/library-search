@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>문내행복 작은도서관 도서 검색</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+h1 { margin-bottom: 5px; }
+.subtitle { color: #666; margin-bottom: 15px; }
+.notice { font-size: 14px; color: #555; margin-bottom: 10px; }
+.count { font-weight: bold; margin: 10px 0; }
+.guide { color: #777; margin-top: 20px; }
+input { width: 100%; padding: 10px; font-size: 16px; margin: 10px 0; }
+table { width: 100%; border-collapse: collapse; display: none; }
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 14px;
+  text-align: left;
+}
+th { background: #f2f2f2; }
+</style>
+</head>
+<body>
+
+<h1>📚 문내행복 작은도서관 📚</h1>
+<div class="subtitle">도서 검색 서비스</div>
+
+<div class="notice">
+※ 대출 가능 여부는 도서관으로 문의해 주세요.
+</div>
+
+<div class="count" id="bookCount">
+총 도서 보유 수: 0권
+</div>
+
+<input type="text" id="search"
+placeholder="도서번호 · 도서명 · 저자 · 출판사 · 청구기호 검색">
+
+<div class="guide" id="guide">
+검색어를 입력하면 도서목록이 표시됩니다.
+</div>
+
+<table id="table">
+<thead>
+<tr>
+  <th>도서번호</th>
+  <th>도서명</th>
