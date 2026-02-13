@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문내행복작은도서관 - 도서검색</title>
+    <style>
+        :root { --main-blue: #0056b3; --bg-gray: #f4f7f9; --accent-blue: #e8f0fe; --warning-red: #d93025; --band-green: #42b649; }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 20px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        
+        h1 { text-align: center; color: var(--main-blue); margin-bottom: 5px; font-size: 1.8rem; cursor: pointer; transition: 0.2s; }
+        h1:hover { opacity: 0.7; }
+        
+        .info-section { text-align: center; background: var(--accent-blue); padding: 15px; border-radius: 10px; margin-bottom: 25px; font-size: 0.9rem; line-height: 1.6; }
+        .info-section p { margin: 5px 0; color: #444; }
+        
+        .stats-bar { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.85rem; color: #666; font-weight: bold; padding: 0 5px; }
+        .total-count { color: var(--main-blue); }
+        .search-count { color: var(--warning-red); display: none; }
+
+        .search-box { display: flex; gap: 10px; margin-bottom: 25px; }
+        input { flex: 1; padding: 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--main-blue); }
+        button { padding: 14px 24px; background: var(--main-blue); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        
+        #loading { text-align: center; display: none; color: var(--main-blue); margin: 20px 0; font-weight: bold; }
+        .book-card { padding: 20px; border-bottom: 1px solid #eee; }
+        .book-title { font-size: 1.15rem; color: #111; display: block; margin-bottom: 4px; font-weight: 700; }
+        .book-info { font-size: 0.95rem; color: #555; }
+        .tag-row { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .tag { font-size: 0.85rem; padding: 4px 10px; border-radius: 6px; font-weight: 500; }
+        .tag-loc { background: #eef2f7; color: var(--main-blue); border: 1px solid #d1d9e6; }
+        
+        /* 하단 푸터 및 안내문구 스타일 */
+        .footer { text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 25px; }
+        .notice-text { font-size: 0.88rem; color: #666; line-height: 1.6; margin-bottom: 20px; background: #fff9e6; padding: 12px; border-radius: 8px; border-left: 4px solid #ffcc00; text-align: left; }
+        .band-link { display: inline-block; padding: 12px 24px; background: var(--band-green); color: white; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(66, 182, 73, 0.2); }
+        .band-link:hover { background: #38a53e; transform: scale(1.02); }
+    </style>
+</head>
+<body onload="initLibrary()">
+
+<div class="container">
+    <h1 onclick="location.reload()">🏠 문내행복작은도서관</h1>
+    
+    <div class="info-section">
+        <p><strong>⏰ 운영시간:</strong> 평일 오전 10시 ~ 오후 5시</p>
+        <p style="color:var(--warning-red)"><strong>🗓️ 휴관일:</strong> 매주 토, 일요일 및 공휴일/도서관이 정한 휴일</p>
+        <p><strong>📍 위치:</strong> 문내주공 104동 B1 관리사무소 옆</p>
+    </div>
+
+    <div class="stats-bar">
+        <span>📚 총 보유 도서: <span id="totalBooks" class="total-count">-</span>권</span>
+        <span id="searchResultArea" class="search-count">🔍 검색 결과: <span id="foundBooks">0</span>권</span>
+    </div>
+    
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="책 제목이나 저자를 입력하세요..." onkeyup="if(window.event.keyCode==13){searchBooks()}">
+        <button onclick="searchBooks()">검색</button>
+    </div>
+
+    <div id="loading">🔍 도서 목록을 확인하고 있습니다...</div>
+    <div id="resultList"></div>
+
+    <div class="footer">
+        <div class="notice-text">
+            📌 <strong>이용 안내</strong><br>
+            • 도서 대출은 1인당 최대 3권, 7일간 가능합니다.<br>
+            • 깨끗한 책 읽기 문화를 위해 낙서나 파손에 주의해 주세요.<br>
+            • 
+기타 문의사항은 도서관으로 문의주세요.
+        </div>
+        
+        <p style="font-size: 0.85rem; color: #888; margin-bottom: 12px;">도서관소식은 밴드에서 확인하세요!</p>
+        <a href="https://band.us/n/a9ac96A754iaV" target="_blank" class="band-link">💻 문내행복도서관 밴드 바로가기</a>
+    </div>
+</div>
+
+<script>
+    const SHEETY_API_URL = 'https://api.sheety.co/829c89b0fd4ce285753672fbd22e66e0/books/books';
+    let allBooksData = [];
+
+    async function initLibrary() {
+        try {
+            const response = await fetch(SHEETY_API_URL);
+            const data = await response.json();
+            allBooksData = data.books;
+            document.getElementById('totalBooks').innerText = allBooksData.length.toLocaleString();
+        } catch (error) {
+            console.error("데이터 로드 실패:", error);
+        }
+    }
+
+    async function searchBooks() {
+        const inputField = document.getElementById('searchInput');
+        const query = inputField.value.trim().toLowerCase().replace(/\s+/g, '');
+        const resultList = document.getElementById('resultList');
+        const loading = document.getElementById('loading');
+        const searchArea = document.getElementById('searchResultArea');
+        const foundCount = document.getElementById('foundBooks');
+
+        if (!query) { alert("검색어를 입력해 주세요!"); return; }
+
+        resultList.innerHTML = '';
+        loading.style.display = 'block';
+        searchArea.style.display = 'none';
+
+        if (allBooksData.length === 0) {
+            const response = await fetch(SHEETY_API_URL);
+            const data = await response.json();
+            allBooksData = data.books;
+        }
+
+        const filtered = allBooksData.filter(book => {
+            const title = book.제목 ? String(book.제목).toLowerCase().replace(/\s+/g, '') : '';
+            const author = book.저자 ? String(book.저자).toLowerCase().replace(/\s+/g, '') : '';
+            return title.includes(query) || author.includes(query);
+        });
+
+        loading.style.display = 'none';
+        searchArea.style.display = 'inline';
+        foundCount.innerText = filtered.length;
+
+        if (filtered.length > 0) {
+            filtered.forEach(book => {
+                const html = `
+                    <div class="book-card">
+                        <span class="book-title">${book.제목}</span>
+                        <div class="book-info">저자: ${book.저자 || '미상'} | 출판사: ${book.출판사 || '정보없음'}</div>
+                        <div class="tag-row">
+                            <span class="tag tag-loc">📍 서가위치: ${book.비고 || '사서문의'}</span>
+                        </div>
+                    </div>`;
+                resultList.innerHTML += html;
+            });
+        } else {
+            resultList.innerHTML = `<div style="text-align:center; padding:40px; color:#999;"><p>찾으시는 책이 없습니다. 🧐</p></div>`;
+        }
+    }
+</script>
+
+</body>
+</html>
